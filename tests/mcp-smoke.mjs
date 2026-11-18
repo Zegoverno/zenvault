@@ -36,7 +36,10 @@ try {
   const { tools } = await client.listTools();
   assert.deepEqual(tools.map((t) => t.name).sort(), ['zenvault_command', 'zenvault_initialize', 'zenvault_lint', 'zenvault_list', 'zenvault_new', 'zenvault_read', 'zenvault_status']);
   const byName = Object.fromEntries(tools.map((t) => [t.name, t]));
-  assert.deepEqual(manifest.contributes, { commands: [{ name: 'vault', tool: 'zenvault_command', args: '<action> [rest]', description: manifest.contributes.commands[0].description }] }, 'one slash command and no view');
+  const vaultCmd = manifest.contributes.commands[0];
+  assert.deepEqual(manifest.contributes, { commands: [{ name: 'vault', tool: 'zenvault_command', args: '<action> [rest]', description: vaultCmd.description, choices: vaultCmd.choices }] }, 'one slash command and no view');
+  assert.deepEqual(vaultCmd.choices.map((c) => c.value), ['lint', 'new', 'status', 'setup'], 'the command offers its four actions');
+  assert.deepEqual(vaultCmd.choices.filter((c) => c.then).map((c) => c.value), ['new'], 'only new needs more input');
   assert.ok(!manifest.contributes.views && !client.getServerCapabilities().resources, 'no view and no UI resource');
   for (const name of ['zenvault_status', 'zenvault_list', 'zenvault_read', 'zenvault_lint']) assert.equal(byName[name].annotations.readOnlyHint, true, `${name} is read-only`);
   assert.deepEqual(manifest.kernel, ['files:read', 'files:write']);

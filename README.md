@@ -4,7 +4,7 @@ A vault **method** for Markdown notes, packaged for agents: the folders, the not
 
 ## The `/vault` command
 
-zenvault adds no tab: browse and search your notes in zenbot's **Files** tab, which opens in the vault. What zenvault adds is one slash command, in the web chat and in Matrix, and an answer in plain Markdown:
+zenvault adds no tab: browse and search your notes in zenbot's **Files** tab, which opens in the vault. What zenvault adds is one slash command, in the web chat and in Matrix, answered in plain Markdown. Typed alone, `/vault` offers its actions: a picker in zenbot's web chat, a list in Matrix and on the command line.
 
 | Command | What |
 |---|---|
@@ -86,7 +86,7 @@ npm run pack      # dist/zenvault-<version>.tgz and its sha256
 
 ## Release
 
-The release is a GitHub release tagged `v<version>` with the one asset `zenvault-<version>.tgz`, which holds `plugin.json`, `mcp/dist/server.js`, `skills/`, `templates/`, `method/AGENTS.md`, `README.md` and `LICENSE`: no links, no absolute paths, no `..`, no `node_modules`, no dot files. `npm run pack` builds it reproducibly and prints the sha256 for the marketplace entry. Try it locally with `zen plugins add dist/zenvault-0.1.1.tgz`.
+The release is a GitHub release tagged `v<version>` with the one asset `zenvault-<version>.tgz`, which holds `plugin.json`, `mcp/dist/server.js`, `skills/`, `templates/`, `method/AGENTS.md`, `README.md` and `LICENSE`: no links, no absolute paths, no `..`, no `node_modules`, no dot files. `npm run pack` builds it reproducibly and prints the sha256 for the marketplace entry. Try it locally with `zen plugins add dist/zenvault-0.1.2.tgz`.
 
 ## License
 
