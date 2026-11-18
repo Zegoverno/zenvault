@@ -1,6 +1,6 @@
 {
   "name": "zenvault",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "title": "zenvault",
   "description": "A vault method for Markdown notes: daily plan, SMART goals, projects, tasks and a wiki, with templates, a linter, a /vault command and agent skills.",
   "author": "Zegoverno",
@@ -18,7 +18,26 @@
         "name": "vault",
         "tool": "zenvault_command",
         "args": "<action> [rest]",
-        "description": "Vault: lint [folder] · new <kind> [project] \"title\" · status · setup"
+        "description": "Work on the vault: lint, new note, status, setup.",
+        "choices": [
+          {
+            "value": "lint",
+            "description": "Check the notes against the vault rules"
+          },
+          {
+            "value": "new",
+            "description": "Create a note from a template",
+            "then": "<kind> [title]"
+          },
+          {
+            "value": "status",
+            "description": "Show which folders and templates are missing"
+          },
+          {
+            "value": "setup",
+            "description": "Create what is missing; never overwrite"
+          }
+        ]
       }
     ]
   },
