@@ -1,6 +1,6 @@
 {
   "name": "zenvault",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "title": "zenvault",
   "description": "A vault method for Markdown notes: daily plan, SMART goals, projects, tasks and a wiki, with templates, a linter, a /vault command and agent skills.",
   "author": "Zegoverno",

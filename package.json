@@ -1,6 +1,6 @@
 {
   "name": "zenvault",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A vault method for Markdown notes (daily plan, goals, projects, wiki) with a linter, templates, a /vault command and agent skills: a zenbot plugin and MCP server.",
   "license": "MIT",
   "type": "module",

@@ -18,4 +18,4 @@ Browse and search notes in zenbot's Files tab. The owner can also type `/vault l
 4. Warnings are heuristics (`hard-wrap`, `changelog-format`, `fact-as-of`): fix them when clearly right, otherwise mention them.
 5. Run `zenvault_lint` again and report the counts before and after, and what is left for the owner.
 
-Rules the linter checks: type and wiki type, status, `superseded_by`, source `link`, `as_of`, flat wiki, project folder contents, project-note fields, goal fields, status, due format and areas (the list is `areas` in `zenvault.json`), daily file names, task ids (present and unique), resolving links, changelog format, hard wrapping, the `Wiki` home linking only to hubs.
+Rules the linter checks: type and wiki type, status, `superseded_by`, source `link`, `as_of`, flat wiki, project folder contents, project-note fields, goal fields, status, due format and areas (the list is `areas` in `zenvault.json`), daily file names, task ids (present and unique, in project notes; `Daily/` tasks are links back to project tasks and are skipped), resolving links, changelog format, hard wrapping, the `Wiki` home linking only to hubs.

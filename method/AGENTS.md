@@ -27,7 +27,7 @@ as_of: YYYY-MM-DD
 ---
 ```
 
-`as_of` is the date the note was last known to be true. There is no archive folder: a note that stops being current is deleted, and git keeps the history. What stays true whatever the project does goes to the wiki instead.
+`as_of` is the date the note was last known to be true: `YYYY-MM-DD`, or `YYYY-MM` when the day is not known. There is no archive folder: a note that stops being current is deleted, and git keeps the history. What stays true whatever the project does goes to the wiki instead.
 
 A project built in code lists its repos in the frontmatter of `<name>.md` (`repos:` with URLs) and in a `## Repos` section right after the intro: per repo, what it is, where it is cloned (or "not cloned") and which docs to read first. The repo holds the technical truth; the vault holds the why and the context across projects, and never copies repo docs.
 
@@ -66,7 +66,7 @@ Tasks live in each project's `tasks.md` (and in a daily note for tasks of one da
 - [x] Buy paint 🆔 a91c ✅ 2030-01-20
 ```
 
-- Every task has a `🆔`: a short id, unique in the whole vault. A task exists once: never copy a task line into another note, link to it or embed the file.
+- Every task has a `🆔`: a short id, unique in the whole vault. A task exists once: never copy a task line into another note, link to it or embed the file. The one exception is the daily plan: a task chosen from a project may be listed there as a link back (`- [ ] Book the physio — [[Projects/alpha/tasks|alpha]]`); the `🆔` stays on the project task, and the linter skips `Daily/` for task ids.
 - `📅` due date, `⏳` scheduled day, `✅` done date.
 - Priority: `🔺` urgent (needed now, not tied to a goal), `⏫` important (moves a goal forward), `🔽` not urgent, `⏬` parking lot. No mark sorts just above the parking lot.
 - A link to a goal ties the task to it; a task without a goal is fine.
@@ -74,7 +74,7 @@ Tasks live in each project's `tasks.md` (and in a daily note for tasks of one da
 
 ## Daily plan
 
-`Daily/YYYY-MM-DD.md` is the plan for one day: the fixed commitments, a few suggested tasks (overdue first, then what moves an active goal) and the active goals. Nothing else belongs in a daily file name.
+`Daily/YYYY-MM-DD.md` is the plan for one day: the fixed commitments, a few suggested tasks (overdue first, then what moves an active goal) and the active goals. Tasks listed here are references to the project's `tasks.md`, which stays the one source of truth: they need no `🆔`. Nothing else belongs in a daily file name.
 
 ## Wiki
 

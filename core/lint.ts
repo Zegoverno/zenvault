@@ -24,6 +24,9 @@ const validDate = (s: string): boolean => {
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
 };
 
+/** `as_of` is a day (YYYY-MM-DD) or, when the day is unknown, a month (YYYY-MM). */
+const validAsOf = (s: string): boolean => /^\d{4}-\d{2}$/.test(s) ? validDate(`${s}-01`) : validDate(s);
+
 type Kind = 'wiki' | 'project-main' | 'project-tasks' | 'project-note' | 'project-stray' | 'goal' | 'daily' | 'other';
 interface Info { note: Note; kind: Kind; split: Split; code: boolean[]; project?: string }
 interface Ctx { config: Config; infos: Info[]; titles: Map<string, Info[]>; paths: Map<string, Info> }
@@ -105,8 +108,8 @@ const sourceLinkUrl: Rule = (i) => {
 const factAsOf: Rule = (i) => {
   if (i.kind !== 'wiki' || str(i.split.front, 'type') !== 'fact') return [];
   const asOf = str(i.split.front, 'as_of');
-  if (!asOf) return [finding(i.note.path, 'fact-as-of', 'warning', 'A fact needs `as_of: YYYY-MM-DD`.', 1)];
-  return validDate(asOf) ? [] : [finding(i.note.path, 'fact-as-of', 'warning', `as_of "${asOf}" is not a date (YYYY-MM-DD).`, 1)];
+  if (!asOf) return [finding(i.note.path, 'fact-as-of', 'warning', 'A fact needs `as_of: YYYY-MM-DD` (or YYYY-MM).', 1)];
+  return validAsOf(asOf) ? [] : [finding(i.note.path, 'fact-as-of', 'warning', `as_of "${asOf}" is not a date (YYYY-MM-DD or YYYY-MM).`, 1)];
 };
 
 /** `idea-author`: an idea keeps its author. */
@@ -132,8 +135,8 @@ const projectNoteFields: Rule = (i) => {
   const out: Finding[] = [];
   if (!str(i.split.front, 'project')) out.push(finding(i.note.path, 'project-note-fields', 'error', 'Missing `project:` (a link to the project page).', 1));
   const asOf = str(i.split.front, 'as_of');
-  if (!asOf) out.push(finding(i.note.path, 'project-note-fields', 'error', 'Missing `as_of: YYYY-MM-DD`.', 1));
-  else if (!validDate(asOf)) out.push(finding(i.note.path, 'project-note-fields', 'error', `as_of "${asOf}" is not a date (YYYY-MM-DD).`, 1));
+  if (!asOf) out.push(finding(i.note.path, 'project-note-fields', 'error', 'Missing `as_of: YYYY-MM-DD` (or YYYY-MM).', 1));
+  else if (!validAsOf(asOf)) out.push(finding(i.note.path, 'project-note-fields', 'error', `as_of "${asOf}" is not a date (YYYY-MM-DD or YYYY-MM).`, 1));
   return out;
 };
 
@@ -187,9 +190,10 @@ const dailyName: Rule = (i) => {
 const TASK = /^\s*[-*+]\s+\[.\]\s+(.*)$/;
 const ID = /🆔\s*([^\s]+)/u;
 
-/** `task-id-missing`: every task has a 🆔. */
+/** `task-id-missing`: every task has a 🆔, except in Daily/, where a task is a link back to a project task (which holds the id). */
 const taskIdMissing: Rule = (i) => {
   const out: Finding[] = [];
+  if (i.kind === 'daily') return out;
   i.note.text.split('\n').forEach((line, n) => {
     if (i.code[n]) return;
     const m = TASK.exec(line);
@@ -270,11 +274,12 @@ const linkUnresolved = (ctx: Ctx): Finding[] => {
   return out;
 };
 
-/** `task-id-duplicate`: a 🆔 is unique in the whole vault. */
+/** `task-id-duplicate`: a 🆔 is unique in the whole vault; Daily/ is skipped, its tasks are references to project tasks. */
 const taskIdDuplicate = (ctx: Ctx): Finding[] => {
   const seen = new Map<string, string>();
   const out: Finding[] = [];
   for (const i of ctx.infos) {
+    if (i.kind === 'daily') continue;
     i.note.text.split('\n').forEach((line, n) => {
       if (i.code[n]) return;
       const m = TASK.exec(line);
