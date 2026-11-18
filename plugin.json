@@ -1,0 +1,30 @@
+{
+  "name": "zenvault",
+  "version": "0.1.0",
+  "title": "zenvault",
+  "description": "A vault method for Markdown notes: daily plan, SMART goals, projects, tasks and a wiki, with templates, a linter, a /vault command and agent skills.",
+  "author": "Zegoverno",
+  "license": "MIT",
+  "repository": "https://github.com/Zegoverno/zenvault",
+  "server": {
+    "command": "node",
+    "args": [
+      "mcp/dist/server.js"
+    ]
+  },
+  "contributes": {
+    "commands": [
+      {
+        "name": "vault",
+        "tool": "zenvault_command",
+        "args": "<action> [rest]",
+        "description": "Vault: lint [folder] · new <kind> [project] \"title\" · status · setup"
+      }
+    ]
+  },
+  "skills": "skills/",
+  "kernel": [
+    "files:read",
+    "files:write"
+  ]
+}

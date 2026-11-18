@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "strict": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    "types": [
+      "node",
+      "vite/client"
+    ],
+    "lib": [
+      "ES2023"
+    ],
+    "skipLibCheck": true
+  },
+  "include": [
+    "core/**/*.ts",
+    "mcp/**/*.ts",
+    "vite*.config.ts",
+    "vitest.config.ts"
+  ]
+}
