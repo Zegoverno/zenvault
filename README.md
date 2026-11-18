@@ -29,7 +29,7 @@ The full rules are in [`method/AGENTS.md`](method/AGENTS.md), which `zenvault_in
 | `Templates/`, `skills/` | a template per kind of note; procedures for agents |
 
 - **Life areas** are tags (`#area/health`) in a wheel of life: health, love, meaning, leadership, business, wealth. The list is `areas` in `zenvault.json` at the vault root; change it to fit your life.
-- **Tasks** use the Obsidian Tasks emoji format. Every task has a `🆔` unique in the vault; priorities `🔺 ⏫ 🔽 ⏬`; dates `📅 ⏳ ✅`.
+- **Tasks** use the Obsidian Tasks emoji format. Every task has a `🆔` unique in the vault (a task in a `Daily/` plan is a link back to the project task and needs none); priorities `🔺 ⏫ 🔽 ⏬`; dates `📅 ⏳ ✅`.
 
 ## Tools
 
@@ -86,7 +86,7 @@ npm run pack      # dist/zenvault-<version>.tgz and its sha256
 
 ## Release
 
-The release is a GitHub release tagged `v<version>` with the one asset `zenvault-<version>.tgz`, which holds `plugin.json`, `mcp/dist/server.js`, `skills/`, `templates/`, `method/AGENTS.md`, `README.md` and `LICENSE`: no links, no absolute paths, no `..`, no `node_modules`, no dot files. `npm run pack` builds it reproducibly and prints the sha256 for the marketplace entry. Try it locally with `zen plugins add dist/zenvault-0.1.0.tgz`.
+The release is a GitHub release tagged `v<version>` with the one asset `zenvault-<version>.tgz`, which holds `plugin.json`, `mcp/dist/server.js`, `skills/`, `templates/`, `method/AGENTS.md`, `README.md` and `LICENSE`: no links, no absolute paths, no `..`, no `node_modules`, no dot files. `npm run pack` builds it reproducibly and prints the sha256 for the marketplace entry. Try it locally with `zen plugins add dist/zenvault-0.1.1.tgz`.
 
 ## License
 

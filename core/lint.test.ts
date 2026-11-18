@@ -64,6 +64,8 @@ describe('wiki pages', () => {
   it('fact-as-of and idea-author warn', () => {
     expect(only([n('wiki/F.md', '---\ntype: fact\n---\n')], 'fact-as-of')[0].severity).toBe('warning');
     expect(only([n('wiki/F.md', '---\ntype: fact\nas_of: 2030-02-31\n---\n')], 'fact-as-of')).toHaveLength(1);
+    expect(only([n('wiki/F.md', '---\ntype: fact\nas_of: 2030-02\n---\n')], 'fact-as-of')).toHaveLength(0);
+    expect(only([n('wiki/F.md', '---\ntype: fact\nas_of: 2030-13\n---\n')], 'fact-as-of')).toHaveLength(1);
     expect(only([n('wiki/I.md', '---\ntype: idea\n---\n')], 'idea-author')[0].severity).toBe('warning');
   });
 });
@@ -81,6 +83,9 @@ describe('projects', () => {
     expect(missing.map((x) => x.message).join(' ')).toMatch(/project[\s\S]*as_of/);
     expect(only(base('type: project-note\nproject: "[[Projects/demo/demo]]"\nas_of: soon\n'), 'project-note-fields')).toHaveLength(1);
     expect(only(base('type: project-note\nproject: "[[Projects/demo/demo]]"\nas_of: 2030-01-01\n'), 'project-note-fields')).toHaveLength(0);
+    expect(only(base('type: project-note\nproject: "[[Projects/demo/demo]]"\nas_of: 2026-08\n'), 'project-note-fields')).toHaveLength(0);
+    expect(only(base('type: project-note\nproject: "[[Projects/demo/demo]]"\nas_of: 2026-13\n'), 'project-note-fields')).toHaveLength(1);
+    expect(only(base('type: project-note\nproject: "[[Projects/demo/demo]]"\nas_of: Aug\n'), 'project-note-fields')).toHaveLength(1);
   });
 });
 
@@ -120,10 +125,18 @@ describe('daily and tasks', () => {
     expect(f.map((x) => x.line)).toEqual([4, 5]);
   });
   it('task-id-duplicate across the vault', () => {
-    const f = only([n('Projects/demo/tasks.md', '- [ ] a 🆔 x1\n'), n('Daily/2030-01-01.md', '- [ ] b 🆔 x1\n- [ ] c 🆔 x2\n')], 'task-id-duplicate');
+    const f = only([n('Projects/demo/tasks.md', '- [ ] a 🆔 x1\n'), n('Projects/other/tasks.md', '- [ ] b 🆔 x1\n- [ ] c 🆔 x2\n')], 'task-id-duplicate');
     expect(f).toHaveLength(1);
-    expect(f[0]).toMatchObject({ path: 'Daily/2030-01-01.md', line: 1 });
+    expect(f[0]).toMatchObject({ path: 'Projects/other/tasks.md', line: 1 });
     expect(f[0].message).toContain('Projects/demo/tasks.md:1');
+  });
+  it('Daily tasks are references: no id needed, and a shared project id is not a duplicate', () => {
+    const daily = n('Daily/2030-01-01.md', '- [ ] Book the physio — [[Projects/demo/tasks|demo]]\n- [ ] Call 🆔 x1\n');
+    const project = n('Projects/demo/tasks.md', '- [ ] Book the physio 🆔 x1\n- [ ] Call 🆔 x2\n');
+    expect(only([daily], 'task-id-missing')).toHaveLength(0);
+    expect(only([project, daily], 'task-id-duplicate')).toHaveLength(0);
+    expect(only([n('Projects/demo/tasks.md', '- [ ] no id\n')], 'task-id-missing')).toHaveLength(1);
+    expect(only([n('Projects/demo/tasks.md', '- [ ] a 🆔 x1\n- [ ] b 🆔 x1\n')], 'task-id-duplicate')).toHaveLength(1);
   });
 });
 
