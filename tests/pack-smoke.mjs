@@ -28,8 +28,8 @@ for (const [i, l] of listing.entries()) {
   assert.match(l, /^-/, `${names[i]} is a regular file`);
   assert.ok(!path.isAbsolute(names[i]) && !names[i].split('/').some((s) => s === '..' || s.startsWith('.') || s === 'node_modules'), names[i]);
 }
-for (const must of ['plugin.json', 'mcp/dist/server.js', 'README.md', 'LICENSE', 'method/AGENTS.md', 'templates/daily.md', 'skills/zenvault/lint/SKILL.md', 'skills/zenvault/wiki/SKILL.md', 'skills/zenvault/organize/SKILL.md']) assert.ok(names.includes(must), `${must} is in the archive`);
-assert.deepEqual(names.filter((n) => !/^(plugin\.json|README\.md|LICENSE|mcp\/dist\/server\.js|method\/AGENTS\.md|templates\/[a-z-]+\.md|skills\/zenvault\/(organize|wiki|lint)\/SKILL\.md)$/.test(n)), [], 'nothing else is in it');
+for (const must of ['plugin.json', 'mcp/dist/server.js', 'README.md', 'LICENSE', 'method/AGENTS.md', 'method/values.json', 'templates/daily.md', 'skills/zenvault/lint/SKILL.md', 'skills/zenvault/wiki/SKILL.md', 'skills/zenvault/organize/SKILL.md']) assert.ok(names.includes(must), `${must} is in the archive`);
+assert.deepEqual(names.filter((n) => !/^(plugin\.json|README\.md|LICENSE|mcp\/dist\/server\.js|method\/(AGENTS\.md|values\.json)|templates\/[a-z-]+\.md|skills\/zenvault\/(organize|wiki|lint)\/SKILL\.md)$/.test(n)), [], 'nothing else is in it');
 
 // unpack into an empty folder and run the server from there
 const tmp = mkdtempSync(path.join(tmpdir(), 'zenvault-pack-'));

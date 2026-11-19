@@ -4,7 +4,7 @@
 //   node scripts/pack.mjs --tag v0.1.1   also check that the release tag is the version
 //
 // The archive holds plugin.json, mcp/dist/server.js (templates and method are bundled in it), skills/,
-// templates/, method/AGENTS.md, README.md and LICENSE at its root: no links, no absolute paths, no `..`,
+// templates/, method/AGENTS.md, method/values.json, README.md and LICENSE at its root: no links, no absolute paths, no `..`,
 // no node_modules, no dot files. It is
 // written here (ustar + gzip), not by `tar`, so it is the same bytes on every machine for the same files.
 // Prints the path and the sha256 (the marketplace entry and the release notes carry it).
@@ -29,7 +29,7 @@ if (pkg.name !== manifest.name) fail(`package.json name ${pkg.name} != plugin.js
 if (tagAt > 0 && tag !== `v${manifest.version}`) fail(`tag "${tag}" is not v${manifest.version}`);
 
 // ---- what goes in: the manifest's own files, nothing else ----
-const files = new Set(['plugin.json', 'README.md', 'LICENSE', 'mcp/dist/server.js', 'method/AGENTS.md']);
+const files = new Set(['plugin.json', 'README.md', 'LICENSE', 'mcp/dist/server.js', 'method/AGENTS.md', 'method/values.json']);
 const entry = manifest.server?.args?.[0];
 if (entry && entry !== 'mcp/dist/server.js') fail(`plugin.json runs ${entry}, but the pack holds mcp/dist/server.js`);
 const walk = (dir) => {
