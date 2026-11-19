@@ -191,6 +191,63 @@ describe('changelog and wrapping', () => {
   });
 });
 
+describe('project status', () => {
+  const project = (status: string) => n('Projects/demo/demo.md', `---\nstatus: ${status}\n---\n# demo\n`);
+  it('project-status: active, done or dropped', () => {
+    for (const ok of ['active', 'done', 'dropped']) expect(only([project(ok), demo[1]], 'project-status')).toEqual([]);
+    const f = only([project('paused'), demo[1]], 'project-status');
+    expect(f).toHaveLength(1);
+    expect(f[0]).toMatchObject({ severity: 'error', path: 'Projects/demo/demo.md', line: 1 });
+    expect(f[0].message).toContain('active, done, dropped');
+  });
+  it('a project with no status, or a project note with one, is not checked', () => {
+    expect(only(demo, 'project-status')).toEqual([]);
+    expect(only([n('Projects/demo/notes/plan.md', '---\ntype: project-note\nstatus: paused\n---\n')], 'project-status')).toEqual([]);
+  });
+});
+
+describe('task lines in Projects/*/tasks.md', () => {
+  const tasks = (text: string, extra: Note[] = []) => [n('Projects/demo/tasks.md', text), ...extra];
+  const lines = (text: string, rule: string) => only(tasks(text), rule).map((f) => `${f.severity}:${f.line}`);
+
+  it('a well-formed file has no findings', () => {
+    const text = '# t\n\n- [ ] Call 📅 2030-01-31 ⏫ 🆔 a1b2c3\n- [x] Buy paint 🆔 d4e5f6 ✅ 2030-01-20\n- [-] Skip it 🆔 g7h8i9 ❌ 2030-01-21\n- [X] Upper x 🆔 j1k2l3 ✅ 2030-01-22\n- [ ] Aim [[Run a race]] 🔽 ⏳ 2030-02-01 🆔 m4n5o6\n';
+    expect(lint([...demo.slice(0, 1), n('Projects/demo/tasks.md', text), goal()])).toEqual([]);
+  });
+  it('task-id-format: 6 lowercase letters or digits; others are a warning, since they still work', () => {
+    expect(lines('- [ ] a 🆔 a1b2c3\n- [ ] b 🆔 f001\n- [ ] c 🆔 ABCDEF\n- [ ] d 🆔 abcdefg\n', 'task-id-format')).toEqual(['warning:2', 'warning:3', 'warning:4']);
+  });
+  it('task-date: done carries ✅, dropped carries ❌, and the dates are real', () => {
+    expect(lines('- [x] a 🆔 a1b2c3\n- [x] b 🆔 a1b2c4 ✅ 2030-01-01\n- [-] c 🆔 a1b2c5\n- [-] d 🆔 a1b2c6 ❌ 2030-01-01\n', 'task-date')).toEqual(['error:1', 'error:3']);
+    expect(lines('- [ ] a 🆔 a1b2c3 📅 2030-02-30\n- [ ] b 🆔 a1b2c4 ⏳ soon\n- [x] c 🆔 a1b2c5 ✅ 30/01/2030\n', 'task-date')).toEqual(['error:1', 'error:2', 'error:3']);
+  });
+  it('task-date: ✅ on an open task and ❌ on a done one are warnings', () => {
+    expect(lines('- [ ] a 🆔 a1b2c3 ✅ 2030-01-01\n- [x] b 🆔 a1b2c4 ✅ 2030-01-01 ❌ 2030-01-02\n- [ ] c 🆔 a1b2c5 📅 2030-01-01\n', 'task-date')).toEqual(['warning:1', 'warning:2']);
+  });
+  it('task-date and the emoji variation selector: ⏫️ ✅️ are read like ⏫ ✅', () => {
+    expect(lines('- [x] a 🆔 a1b2c3 ✅\uFE0F 2030-01-01 ⏫\uFE0F\n', 'task-date')).toEqual([]);
+    expect(lines('- [x] a 🆔 a1b2c3 ⏫\uFE0F 🔺\n', 'task-priority')).toEqual(['error:1']);
+  });
+  it('task-priority: one of 🔺 ⏫ 🔽 ⏬; 🔼 is legacy (warning); two marks are an error', () => {
+    expect(lines('- [ ] a 🆔 a1b2c3 🔺\n- [ ] b 🆔 a1b2c4 ⏫\n- [ ] c 🆔 a1b2c5 🔽\n- [ ] d 🆔 a1b2c6 ⏬\n- [ ] e 🆔 a1b2c7\n', 'task-priority')).toEqual([]);
+    expect(lines('- [ ] a 🆔 a1b2c3 🔼\n- [ ] b 🆔 a1b2c4 ⏫ 🔽\n', 'task-priority')).toEqual(['warning:1', 'error:2']);
+  });
+  it('task-goal-link: a link on a task names a goal; other notes are a warning, missing ones are link-unresolved', () => {
+    const wiki = n('wiki/Maths.md', '---\ntype: hub\n---\n');
+    const f = only(tasks('- [ ] a [[Run a race]] 🆔 a1b2c3\n- [ ] b [[Maths]] 🆔 a1b2c4\n- [ ] c [[Goals/Run a race|race]] 🆔 a1b2c5\n- [ ] d [[Projects/demo/demo]] 🆔 a1b2c6\n- [ ] e [[Nowhere]] 🆔 a1b2c7\nA note with [[Maths]] is not a task.\n', [goal(), wiki, demo[0]]), 'task-goal-link');
+    expect(f.map((x) => `${x.severity}:${x.line}`)).toEqual(['warning:2', 'warning:4']);
+    expect(only(tasks('- [ ] e [[Nowhere]] 🆔 a1b2c7\n'), 'link-unresolved')).toHaveLength(1);
+  });
+  it('only Projects/*/tasks.md is checked: the daily plan and other notes are left alone', () => {
+    const text = '- [x] a 🆔 f001 🔼 ⏫\n';
+    expect(lint([n('Daily/2030-01-01.md', text)])).toEqual([]);
+    expect(rules([n('wiki/X.md', `---\ntype: hub\n---\n${text}`)])).not.toContain('task-date');
+  });
+  it('code blocks are ignored', () => {
+    expect(lint([...demo.slice(0, 1), n('Projects/demo/tasks.md', '```\n- [x] sample 🆔 f001 🔼\n```\n')])).toEqual([]);
+  });
+});
+
 describe('output', () => {
   it('is sorted by path then line, and counted', () => {
     const f = lint([n('wiki/B.md', '# B\n'), n('wiki/A.md', '---\ntype: fact\n---\n')]);

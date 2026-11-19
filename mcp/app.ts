@@ -3,6 +3,7 @@
 //   zenvault_status      folders, templates, areas and note counts: what is set up and what is missing
 //   zenvault_list        the Markdown notes and folders in a folder
 //   zenvault_read        a note's Markdown
+//   zenvault_values      the allowed property values (wiki types, statuses, the vault's areas) with labels, in display order
 //   zenvault_lint        check the vault against the method (read-only); optional path to scope the report
 //   zenvault_new         create a note from a template (never overwrites)
 //   zenvault_initialize  create only the missing folders, templates, AGENTS.md and zenvault.json
@@ -12,10 +13,12 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { KINDS } from '../core/templates.ts';
+import { parseConfig } from '../core/config.ts';
+import { valuesFor } from '../core/values.ts';
 import { VERSION } from '../core/version.ts';
 import { FileError, Files } from './files.ts';
 import { runCommand } from './command.ts';
-import { initialize, newNote, runLint, status } from './vault.ts';
+import { initialize, loadConfig, newNote, runLint, status } from './vault.ts';
 
 const reply = (message: string, structured: Record<string, unknown>) => ({ content: [{ type: 'text' as const, text: message }], structuredContent: structured });
 const fail = (message: string) => ({ content: [{ type: 'text' as const, text: message }], isError: true });
@@ -89,6 +92,17 @@ export function createServer(opts: Options = {}): McpServer {
     const text = await f.read(p);
     return reply(text, { path: Files.clean(p), text });
   }));
+
+  server.registerTool('zenvault_values', {
+    title: 'Allowed property values',
+    description: 'The values the method allows for note properties, in display order, with labels, for filters and forms: wiki `type` and `status`, goal and project `status`, `project-note` type, and the vault\'s life `areas`. Each property is {key, scope, label, paths, values: [{value, label, description?}], multiple?}; `paths` are vault-relative patterns (`*` is one path segment) of the notes it applies to. The same data is in method/values.json. Read-only; works without a vault folder (default areas then).',
+    inputSchema: {},
+    annotations: { readOnlyHint: true, openWorldHint: false },
+  }, async () => {
+    const { config } = files ? await loadConfig(files) : { config: parseConfig(null).config };
+    const v = valuesFor(config);
+    return reply(`${v.properties.length} properties: ${v.properties.map((p) => `${p.scope} ${p.key}`).join(', ')}.`, { ...v });
+  });
 
   server.registerTool('zenvault_lint', {
     title: 'Lint the vault',

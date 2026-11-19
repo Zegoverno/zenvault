@@ -34,15 +34,24 @@ try {
   assert.equal(client.getServerVersion().name, manifest.name);
   assert.equal(client.getServerVersion().version, manifest.version, 'the server reports the plugin version');
   const { tools } = await client.listTools();
-  assert.deepEqual(tools.map((t) => t.name).sort(), ['zenvault_command', 'zenvault_initialize', 'zenvault_lint', 'zenvault_list', 'zenvault_new', 'zenvault_read', 'zenvault_status']);
+  assert.deepEqual(tools.map((t) => t.name).sort(), ['zenvault_command', 'zenvault_initialize', 'zenvault_lint', 'zenvault_list', 'zenvault_new', 'zenvault_read', 'zenvault_status', 'zenvault_values']);
   const byName = Object.fromEntries(tools.map((t) => [t.name, t]));
   const vaultCmd = manifest.contributes.commands[0];
   assert.deepEqual(manifest.contributes, { commands: [{ name: 'vault', tool: 'zenvault_command', args: '<action> [rest]', description: vaultCmd.description, choices: vaultCmd.choices }] }, 'one slash command and no view');
   assert.deepEqual(vaultCmd.choices.map((c) => c.value), ['lint', 'new', 'status', 'setup'], 'the command offers its four actions');
   assert.deepEqual(vaultCmd.choices.filter((c) => c.then).map((c) => c.value), ['new'], 'only new needs more input');
   assert.ok(!manifest.contributes.views && !client.getServerCapabilities().resources, 'no view and no UI resource');
-  for (const name of ['zenvault_status', 'zenvault_list', 'zenvault_read', 'zenvault_lint']) assert.equal(byName[name].annotations.readOnlyHint, true, `${name} is read-only`);
+  for (const name of ['zenvault_status', 'zenvault_list', 'zenvault_read', 'zenvault_lint', 'zenvault_values']) assert.equal(byName[name].annotations.readOnlyHint, true, `${name} is read-only`);
   assert.deepEqual(manifest.kernel, ['files:read', 'files:write']);
+
+  // ---- the allowed values, as data ----
+  const values = (await call(client, 'zenvault_values')).structuredContent;
+  const prop = (scope, key) => values.properties.find((p) => p.scope === scope && p.key === key);
+  assert.deepEqual(prop('goal', 'status').values.map((v) => v.value), ['active', 'done', 'dropped']);
+  assert.deepEqual(prop('project', 'status').values.map((v) => v.label), ['Active', 'Done', 'Dropped']);
+  assert.equal(prop('wiki', 'type').values[0].value, 'primitive');
+  assert.deepEqual(prop('goal', 'areas').values.map((v) => v.value), ['health', 'love', 'meaning', 'leadership', 'business', 'wealth']);
+  assert.deepEqual(JSON.parse(readFileSync(root + 'method/values.json', 'utf8')).properties, values.properties.filter((p) => p.key !== 'areas'), 'the tool serves method/values.json');
 
   // ---- status, then initialize: only what is missing, never an overwrite ----
   assert.equal((await call(client, 'zenvault_status')).structuredContent.missingFolders.length, 6);
@@ -71,6 +80,10 @@ try {
 
   // ---- lint: finds a seeded error, scoped and whole ----
   assert.equal((await call(client, 'zenvault_lint', { path: 'Projects' })).structuredContent.counts.errors, 0);
+  writeFileSync(path.join(vault, 'Projects/garden/tasks.md'), '# garden tasks\n\n- [ ] Plant 🆔 a1b2c3\n- [x] Water 🆔 d4e5f6\n- [-] Weed 🆔 g7h8i9 ❌ 2030-01-02\n');
+  const taskFindings = (await call(client, 'zenvault_lint', { path: 'Projects/garden' })).structuredContent.findings;
+  assert.deepEqual(taskFindings.map((f) => `${f.rule}:${f.line}`), ['task-date:4'], 'a done task without ✅ is reported');
+  writeFileSync(path.join(vault, 'Projects/garden/tasks.md'), '# garden tasks\n');
   writeFileSync(path.join(vault, 'wiki/Broken.md'), '# no front matter\n\nSee [[Nowhere]].\n\n- [ ] a task without an id\n');
   const lint = await call(client, 'zenvault_lint');
   const rules = lint.structuredContent.findings.map((f) => `${f.rule}@${f.path}`);
@@ -140,6 +153,7 @@ try {
 // ---- no files folder (as in Claude Desktop): every tool says so and refuses ----
 const bare = await start({});
 try {
+  assert.equal((await call(bare, 'zenvault_values')).structuredContent.properties.length, 6, 'the values need no vault folder');
   for (const [name, args] of [['zenvault_status', {}], ['zenvault_list', {}], ['zenvault_read', { path: 'a.md' }], ['zenvault_lint', {}], ['zenvault_new', { kind: 'fact', title: 'X' }], ['zenvault_initialize', {}], ['zenvault_command', { action: 'status' }]]) {
     const r = await call(bare, name, args);
     assert.equal(r.isError, true, name);
@@ -147,4 +161,4 @@ try {
   }
 } finally { await bare.close(); rmSync(tmp, { recursive: true, force: true }); }
 
-console.log('mcp smoke ok: 7 tools, the /vault command, refusals, no-files mode');
+console.log('mcp smoke ok: 8 tools, the /vault command, refusals, no-files mode');

@@ -6,6 +6,7 @@
 // vault's own instructions (AGENTS.md, CLAUDE.md).
 import { DEFAULT_AREAS, normalizeArea } from './config.ts';
 import type { Config } from './config.ts';
+import { allowed } from './values.ts';
 import { codeLines, list, splitFront, str, titleOf, wikiLinks } from './text.ts';
 import type { Split } from './text.ts';
 
@@ -13,9 +14,11 @@ export interface Note { path: string; text: string }
 export type Severity = 'error' | 'warning';
 export interface Finding { path: string; line?: number; rule: string; severity: Severity; message: string }
 
-export const WIKI_TYPES = ['primitive', 'hub', 'source', 'fact', 'solution', 'decision', 'idea'] as const;
-export const WIKI_STATUSES = ['current', 'stale', 'superseded'];
-export const GOAL_STATUSES = ['active', 'done', 'dropped'];
+// The allowed values are data (method/values.json), shared with zenvault_values.
+export const WIKI_TYPES = allowed('wiki', 'type');
+export const WIKI_STATUSES = allowed('wiki', 'status');
+export const GOAL_STATUSES = allowed('goal', 'status');
+export const PROJECT_STATUSES = allowed('project', 'status');
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const validDate = (s: string): boolean => {
@@ -70,10 +73,10 @@ const typeMissing: Rule = (i) => {
   return [];
 };
 
-/** `wiki-type-unknown`: a wiki page's type is one of the seven. */
+/** `wiki-type-unknown`: a wiki page's type is one of the allowed types. */
 const wikiTypeUnknown: Rule = (i) => {
   const type = str(i.split.front, 'type');
-  if (i.kind !== 'wiki' || !type || (WIKI_TYPES as readonly string[]).includes(type)) return [];
+  if (i.kind !== 'wiki' || !type || WIKI_TYPES.includes(type)) return [];
   return [finding(i.note.path, 'wiki-type-unknown', 'error', `Unknown wiki type "${type}": use ${WIKI_TYPES.join(', ')}.`, 1)];
 };
 
@@ -121,6 +124,13 @@ const projectStrayFile: Rule = (i) => i.kind === 'project-stray'
   ? [finding(i.note.path, 'project-stray-file', 'error', i.project
     ? `Only ${i.project}.md and tasks.md belong at the top of Projects/${i.project}/: move this into notes/.`
     : 'Projects/ holds only project folders: move this into Projects/<name>/ (as <name>.md or in notes/).')] : [];
+
+/** `project-status`: a project's `status`, when it has one, is active, done or dropped (as a goal's). */
+const projectStatus: Rule = (i) => {
+  const status = str(i.split.front, 'status');
+  if (i.kind !== 'project-main' || !status || PROJECT_STATUSES.includes(status)) return [];
+  return [finding(i.note.path, 'project-status', 'error', `Project status "${status}" is not one of ${PROJECT_STATUSES.join(', ')}.`, 1)];
+};
 
 /** `project-note-type`: a note in `notes/` is `type: project-note`. */
 const projectNoteType: Rule = (i) => {
@@ -202,6 +212,55 @@ const taskIdMissing: Rule = (i) => {
   return out;
 };
 
+// ---- task lines (Projects/*/tasks.md): the format the app reads and writes ----------------------
+
+const TASK_ID_SHAPE = /^[a-z0-9]{6}$/;
+const PRIORITIES = ['🔺', '⏫', '🔼', '🔽', '⏬'];
+const DATE_FIELDS: [string, string][] = [['📅', 'due'], ['⏳', 'scheduled'], ['✅', 'done'], ['❌', 'dropped']];
+type TaskState = 'open' | 'done' | 'dropped';
+
+/** A task line in a project's `tasks.md`, as the linter reads it: emoji variation selectors removed. */
+function taskState(line: string): { state: TaskState; body: string } | null {
+  const m = /^\s*[-*+]\s+\[(.)\]\s+(.*)$/.exec(line.replace(/\uFE0F/g, ''));
+  if (!m) return null;
+  const state: TaskState | null = m[1] === ' ' ? 'open' : m[1] === 'x' || m[1] === 'X' ? 'done' : m[1] === '-' ? 'dropped' : null;
+  return state ? { state, body: m[2] } : null;
+}
+
+/**
+ * Task lines of a project's `tasks.md`. Daily/ tasks are references and are skipped.
+ * `task-id-format`: the id is 6 lowercase letters or digits (a warning: older ids stay valid, and changing one would break what points at it).
+ * `task-date`: `📅 ⏳ ✅ ❌` hold real YYYY-MM-DD dates; a done task `- [x]` carries `✅`, a dropped one `- [-]` carries `❌`, and the other states carry neither.
+ * `task-priority`: only one of 🔺 ⏫ 🔽 ⏬ (🔼 is read but no longer offered: a warning).
+ */
+const taskLine: Rule = (i) => {
+  if (i.kind !== 'project-tasks') return [];
+  const out: Finding[] = [];
+  i.note.text.split('\n').forEach((raw, n) => {
+    if (i.code[n]) return;
+    const t = taskState(raw);
+    if (!t) return;
+    const at = n + 1;
+    const id = ID.exec(t.body)?.[1];
+    if (id && !TASK_ID_SHAPE.test(id)) out.push(finding(i.note.path, 'task-id-format', 'warning', `🆔 ${id} is not 6 lowercase letters or digits (like a91c3f). It still works; do not change it if something points at it.`, at));
+    const dates = new Map<string, string>();
+    for (const [emoji, name] of DATE_FIELDS) {
+      const m = new RegExp(`${emoji}\\s*(\\S*)`, 'u').exec(t.body);
+      if (!m) continue;
+      dates.set(name, m[1]);
+      if (!validDate(m[1])) out.push(finding(i.note.path, 'task-date', 'error', `${emoji} "${m[1]}" is not a date (YYYY-MM-DD).`, at));
+    }
+    if (t.state === 'done' && !dates.has('done')) out.push(finding(i.note.path, 'task-date', 'error', 'A done task `- [x]` needs `✅ YYYY-MM-DD`.', at));
+    if (t.state === 'dropped' && !dates.has('dropped')) out.push(finding(i.note.path, 'task-date', 'error', 'A dropped task `- [-]` needs `❌ YYYY-MM-DD`.', at));
+    if (t.state !== 'done' && dates.has('done')) out.push(finding(i.note.path, 'task-date', 'warning', '✅ is for done tasks `- [x]`: remove it, or tick the task.', at));
+    if (t.state !== 'dropped' && dates.has('dropped')) out.push(finding(i.note.path, 'task-date', 'warning', '❌ is for dropped tasks `- [-]`: remove it, or drop the task.', at));
+    const marks = PRIORITIES.filter((p) => t.body.includes(p));
+    if (marks.length > 1) out.push(finding(i.note.path, 'task-priority', 'error', `A task has one priority, not ${marks.join(' ')}: use one of 🔺 ⏫ 🔽 ⏬.`, at));
+    else if (marks[0] === '🔼') out.push(finding(i.note.path, 'task-priority', 'warning', '🔼 is a legacy priority: use ⏫ (important), 🔽 (not urgent) or no mark.', at));
+  });
+  return out;
+};
+
 /** `changelog-format`: `## Changelog` is the last section and has `- YYYY-MM-DD — text` lines, newest first. A page without one is fine. */
 const changelogFormat: Rule = (i) => {
   if (i.kind !== 'wiki') return [];
@@ -246,8 +305,8 @@ const hardWrap: Rule = (i) => {
 
 const NOTE_RULES: Rule[] = [
   frontmatterClosed, typeMissing, wikiTypeUnknown, wikiFlat, wikiStatus, supersededNeedsLink, sourceLinkUrl, factAsOf, ideaAuthor,
-  projectStrayFile, projectNoteType, projectNoteFields, goalFields, goalStatus, goalDueFormat, goalAreaUnknown, goalProjectLink,
-  dailyName, taskIdMissing, changelogFormat, hardWrap,
+  projectStrayFile, projectStatus, projectNoteType, projectNoteFields, goalFields, goalStatus, goalDueFormat, goalAreaUnknown, goalProjectLink,
+  dailyName, taskIdMissing, taskLine, changelogFormat, hardWrap,
 ];
 
 // ---- vault rules -------------------------------------------------------------------------------
@@ -289,6 +348,23 @@ const taskIdDuplicate = (ctx: Ctx): Finding[] => {
       if (first) out.push(finding(i.note.path, 'task-id-duplicate', 'error', `🆔 ${id} is already used at ${first}.`, n + 1));
       else seen.set(id, `${i.note.path}:${n + 1}`);
     });
+  }
+  return out;
+};
+
+/** `task-goal-link`: a `[[link]]` on a task in a project's `tasks.md` ties it to a goal, so it names a note in Goals/. */
+const taskGoalLink = (ctx: Ctx): Finding[] => {
+  const out: Finding[] = [];
+  for (const i of ctx.infos) {
+    if (i.kind !== 'project-tasks') continue;
+    const tasks = new Set<number>();
+    i.note.text.split('\n').forEach((line, n) => { if (!i.code[n] && taskState(line)) tasks.add(n + 1); });
+    for (const l of wikiLinks(i.note.text)) {
+      if (!tasks.has(l.line)) continue;
+      const key = l.target.replace(/\.md$/i, '').toLowerCase();
+      const to = key.includes('/') ? ctx.paths.get(`${key}.md`) : ctx.titles.get(key)?.[0];
+      if (to && to.kind !== 'goal') out.push(finding(i.note.path, 'task-goal-link', 'warning', `${l.raw} is not a goal: links on a task name a note in Goals/.`, l.line));
+    }
   }
   return out;
 };
@@ -335,7 +411,7 @@ export function lint(notes: Note[], config: Partial<Config> = {}): Finding[] {
   const ctx: Ctx = { config: cfg, infos, titles, paths };
   const findings = [
     ...infos.flatMap((i) => NOTE_RULES.flatMap((rule) => rule(i, ctx))),
-    ...linkUnresolved(ctx), ...taskIdDuplicate(ctx), ...wikiHomeHubs(ctx),
+    ...linkUnresolved(ctx), ...taskIdDuplicate(ctx), ...taskGoalLink(ctx), ...wikiHomeHubs(ctx),
   ];
   return findings.sort((a, b) => a.path.localeCompare(b.path) || (a.line ?? 0) - (b.line ?? 0) || a.rule.localeCompare(b.rule));
 }
@@ -344,7 +420,8 @@ export function lint(notes: Note[], config: Partial<Config> = {}): Finding[] {
 export const RULES = [
   'frontmatter-closed', 'type-missing', 'wiki-type-unknown', 'wiki-flat', 'wiki-status', 'superseded-needs-link', 'source-link-url',
   'fact-as-of', 'idea-author', 'project-stray-file', 'project-note-type', 'project-note-fields', 'goal-fields', 'goal-status',
-  'goal-due-format', 'goal-area-unknown', 'goal-project-link', 'daily-name', 'task-id-missing', 'task-id-duplicate',
+  'goal-due-format', 'goal-area-unknown', 'goal-project-link', 'project-status', 'daily-name', 'task-id-missing', 'task-id-format',
+  'task-id-duplicate', 'task-date', 'task-priority', 'task-goal-link',
   'link-unresolved', 'changelog-format', 'hard-wrap', 'wiki-home-hubs',
 ] as const;
 

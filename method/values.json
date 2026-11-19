@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "about": "The values the vault method allows for note properties, in display order. The linter reads this file; so does zenvault_values, for filters that label and order them.",
+  "properties": [
+    {
+      "key": "type",
+      "scope": "wiki",
+      "label": "Type",
+      "paths": ["wiki/*.md"],
+      "values": [
+        { "value": "primitive", "label": "Primitive", "description": "A concept, principle, model or formula." },
+        { "value": "hub", "label": "Hub", "description": "A map of one subject or context type." },
+        { "value": "source", "label": "Source", "description": "A book, article, video or news item and what is worth keeping." },
+        { "value": "fact", "label": "Fact", "description": "Something true about the world, as of a date." },
+        { "value": "solution", "label": "Solution", "description": "How a problem was solved." },
+        { "value": "decision", "label": "Decision", "description": "An agreement: what, why, the date, who decided." },
+        { "value": "idea", "label": "Idea", "description": "Someone's idea, kept in their own words." }
+      ]
+    },
+    {
+      "key": "status",
+      "scope": "wiki",
+      "label": "Status",
+      "paths": ["wiki/*.md"],
+      "values": [
+        { "value": "current", "label": "Current", "description": "The default; may be omitted." },
+        { "value": "stale", "label": "Stale", "description": "The body says what changed and as of when." },
+        { "value": "superseded", "label": "Superseded", "description": "Replaced; links to its replacement." }
+      ]
+    },
+    {
+      "key": "type",
+      "scope": "project-note",
+      "label": "Type",
+      "paths": ["Projects/*/notes/*.md"],
+      "values": [
+        { "value": "project-note", "label": "Project note", "description": "A document of a project, in its notes/ folder." }
+      ]
+    },
+    {
+      "key": "status",
+      "scope": "goal",
+      "label": "Status",
+      "paths": ["Goals/*.md"],
+      "values": [
+        { "value": "active", "label": "Active", "description": "Being pursued." },
+        { "value": "done", "label": "Done", "description": "Reached." },
+        { "value": "dropped", "label": "Dropped", "description": "Given up on purpose." }
+      ]
+    },
+    {
+      "key": "status",
+      "scope": "project",
+      "label": "Status",
+      "paths": ["Projects/*/*.md"],
+      "values": [
+        { "value": "active", "label": "Active", "description": "Being worked on." },
+        { "value": "done", "label": "Done", "description": "Finished." },
+        { "value": "dropped", "label": "Dropped", "description": "Given up on purpose." }
+      ]
+    }
+  ]
+}

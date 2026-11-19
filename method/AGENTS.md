@@ -27,6 +27,8 @@ as_of: YYYY-MM-DD
 ---
 ```
 
+A project's own note `<name>.md` has `status`: `active`, `done` or `dropped` (the same values as a goal's), and `areas`.
+
 `as_of` is the date the note was last known to be true: `YYYY-MM-DD`, or `YYYY-MM` when the day is not known. There is no archive folder: a note that stops being current is deleted, and git keeps the history. What stays true whatever the project does goes to the wiki instead.
 
 A project built in code lists its repos in the frontmatter of `<name>.md` (`repos:` with URLs) and in a `## Repos` section right after the intro: per repo, what it is, where it is cloned (or "not cloned") and which docs to read first. The repo holds the technical truth; the vault holds the why and the context across projects, and never copies repo docs.
@@ -62,15 +64,18 @@ The body says the goal, why it matters and how it is measured. A goal states onl
 Tasks live in each project's `tasks.md` (and in a daily note for tasks of one day) as checkboxes in the Obsidian Tasks format, one per line:
 
 ```
-- [ ] Call the plumber [[Fix the kitchen]] 📅 2030-01-31 🆔 t7k2
-- [x] Buy paint 🆔 a91c ✅ 2030-01-20
+- [ ] Call the plumber [[Fix the kitchen]] 📅 2030-01-31 ⏫ 🆔 t7k2x9
+- [x] Buy paint 🆔 a91c3f ✅ 2030-01-20
+- [-] Repaint the fence 🆔 k2m8q1 ❌ 2030-01-22
 ```
 
-- Every task has a `🆔`: a short id, unique in the whole vault. A task exists once: never copy a task line into another note, link to it or embed the file. The one exception is the daily plan: a task chosen from a project may be listed there as a link back (`- [ ] Book the physio — [[Projects/alpha/tasks|alpha]]`); the `🆔` stays on the project task, and the linter skips `Daily/` for task ids.
-- `📅` due date, `⏳` scheduled day, `✅` done date.
-- Priority: `🔺` urgent (needed now, not tied to a goal), `⏫` important (moves a goal forward), `🔽` not urgent, `⏬` parking lot. No mark sorts just above the parking lot.
-- A link to a goal ties the task to it; a task without a goal is fine.
-- The owner adds, finishes and drops tasks. An agent adds a task only when asked and never invents one. Drop a task by deleting its line, or `- [-]` to keep the record.
+- Every task has a `🆔`: a short id of 6 lowercase letters or digits (`a91c3f`), unique in the whole vault. (Older, shorter ids stay valid: the linter only warns, and an id is never changed once something points at it.) A task exists once: never copy a task line into another note, link to it or embed the file. The one exception is the daily plan: a task chosen from a project may be listed there as a link back (`- [ ] Book the physio — [[Projects/alpha/tasks|alpha]]`); the `🆔` stays on the project task, and the linter skips `Daily/` for task ids.
+- State: `- [ ]` open, `- [x]` done, `- [-]` dropped. A done task carries `✅ YYYY-MM-DD` (the day it was done), a dropped one `❌ YYYY-MM-DD`; an open task carries neither.
+- `📅` due date, `⏳` scheduled day. Dates are `YYYY-MM-DD`.
+- Priority, at most one: `🔺` urgent (needed now, not tied to a goal), `⏫` important (moves a goal forward), `🔽` not urgent, `⏬` parking lot. No mark sorts just above the parking lot. `🔼` is read as medium for old tasks but is not offered any more.
+- A link to a goal ties the task to it: `[[Fix the kitchen]]` names a note in `Goals/`. A task without a goal is fine. Links on a task name goals and nothing else.
+- Fields may come in any order; the line keeps the Tasks plugin's emoji format so Obsidian reads it too.
+- The owner adds, finishes and drops tasks, in Obsidian or in the zenbot app (which writes the same lines). An agent adds a task only when asked and never invents one. Drop a task by deleting its line, or `- [-]` to keep the record.
 
 ## Daily plan
 
@@ -104,6 +109,10 @@ A wiki for remembering and retrieving what matters when a problem comes up. Page
 
 - `status:` is `current` (the default, may be omitted), `stale` (the body says what changed and as of when) or `superseded` (with a link to the replacement). Stale is marked, not hidden.
 - Every changed page ends with `## Changelog`: one line per change, newest first, `- YYYY-MM-DD — what changed and why`. The body is always the current version; the changelog keeps the history. Never delete entries. Nothing comes after it.
+
+## Allowed values
+
+The values the method allows for `type` and `status` (wiki pages, goals, projects), with their labels and display order, are data in `values.json` next to this file (and from the `zenvault_values` tool, which adds the vault's `areas`). The linter reads the same file, so what is listed here, what is checked and what an app offers in a filter cannot differ.
 
 ## Safety
 
